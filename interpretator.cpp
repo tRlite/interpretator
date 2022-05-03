@@ -15,7 +15,7 @@ enum type_of_lex {
     LEX_NOT, LEX_OR, LEX_PROGRAM, LEX_READ, LEX_TRUE, LEX_DO, LEX_WHILE, LEX_WRITE, LEX_STRING,
     LEX_FIN,
     LEX_SEMICOLON, LEX_COMMA, LEX_COLON, LEX_ASSIGN, LEX_LPAREN, LEX_RPAREN, LEX_EQ, LEX_LSS,
-    LEX_GTR, LEX_PLUS, LEX_MINUS, LEX_TIMES, LEX_SLASH, LEX_LEQ, LEX_NEQ, LEX_GEQ, LEX_LFIG, LEX_RFIG,
+    LEX_GTR, LEX_PLUS, LEX_MINUS, LEX_TIMES, LEX_SLASH, LEX_LEQ, LEX_NEQ, LEX_GEQ, LEX_LFIG, LEX_RFIG, LEX_UMINUS,
     LEX_NUM,
     LEX_ID,
     LEX_WORD,
@@ -269,6 +269,8 @@ ostream& operator<< (ostream& s, Lex l) {
         t = Scanner::TW[l.t_lex];
     else if (l.t_lex >= LEX_FIN && l.t_lex <= LEX_GEQ)
         t = Scanner::TD[l.t_lex - LEX_FIN];
+    else if (l.t_lex == LEX_UMINUS)
+        t = "^";
     else if (l.t_lex == LEX_NUM)
         t = "NUMB";
     else if (l.t_lex == LEX_ID)
@@ -319,6 +321,7 @@ class Parser {
     void  eq_type();
     void  eq_bool();
     void  check_id_in_read();
+    void  check_uminus();
     void  gl() {
         curr_lex = scan.get_lex();
         c_type = curr_lex.get_type();
@@ -626,6 +629,11 @@ void Parser::T() {
 }
 
 void Parser::F() {
+    bool uminus = false;
+    if (c_type == LEX_MINUS) {
+        uminus = true;
+        gl();
+    }
     if (c_type == LEX_ID) {
         int c = c_val;
         check_id();
@@ -676,6 +684,8 @@ void Parser::F() {
     }
     else
         throw curr_lex;
+    if (uminus)
+        check_uminus();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -722,6 +732,13 @@ void Parser::check_not() {
         poliz.push_back(Lex(LEX_NOT));
 }
 
+void Parser::check_uminus() {
+    if (st_lex.top() != LEX_INT)
+        throw "wrong type is in unary minus";
+    else
+        poliz.push_back(Lex(LEX_UMINUS));
+}
+
 void Parser::eq_type() {
     type_of_lex t;
     from_st(st_lex, t);
@@ -751,7 +768,9 @@ public:
 void Executer::execute(vector<Lex>& poliz) {
     Lex pc_el;
     stack < int > args;
+    stack < string > string_args;
     int i, j, index = 0, size = poliz.size();
+    string curr_str;
     while (index < size) {
         pc_el = poliz[index];
         switch (pc_el.get_type()) {
@@ -760,15 +779,17 @@ void Executer::execute(vector<Lex>& poliz) {
             break;
 
         case LEX_WORD:
-            args.push(-pc_el.get_value() - 1);
+            string_args.push(TTW[pc_el.get_value()]);
+            args.push('s');
             break;
 
         case LEX_ID:
             i = pc_el.get_value();
             if (TID[i].get_assign()) {
-                cout << TID[i].get_type() << endl;
-                if (TID[i].get_type() == LEX_STRING)
-                    args.push(-TID[i].get_value() - 1);
+                if (TID[i].get_type() == LEX_STRING) {
+                    string_args.push(TTW[TID[i].get_value()]);
+                    args.push('s');
+                }
                 else
                     args.push(TID[i].get_value());
                 break;
@@ -779,6 +800,11 @@ void Executer::execute(vector<Lex>& poliz) {
         case LEX_NOT:
             from_st(args, i);
             args.push(!i);
+            break;
+
+        case LEX_UMINUS:
+            from_st(args, i);
+            args.push(-i);
             break;
 
         case LEX_OR:
@@ -806,9 +832,12 @@ void Executer::execute(vector<Lex>& poliz) {
 
         case LEX_WRITE:
             from_st(args, j);
-            if (j >= 0)
+            if (j != 's')
                 cout << j << endl;
-            else cout << TTW[-j - 1] << endl;
+            else {
+                from_st(string_args, curr_str);
+                cout << curr_str << endl;
+            }
             break;
 
         case LEX_READ:
@@ -908,7 +937,7 @@ void Executer::execute(vector<Lex>& poliz) {
         case LEX_ASSIGN:
             from_st(args, i);
             from_st(args, j);
-            if (i >= 0)
+            if (TID[j].get_type() != LEX_STRING)
                 TID[j].put_value(i);
             else TID[j].put_value(-i - 1);
             TID[j].put_assign();
