@@ -165,7 +165,6 @@ Lex Scanner::get_lex() {
                 CS = NUMB;
             }
             else if (c == '"') {
-                str.push_back(c);
                 CS = STR;
             }
             else if (c == '/') {
@@ -215,8 +214,9 @@ Lex Scanner::get_lex() {
             }
             break;
         case STR:
-            str.push_back(c);
-            if (c == '"') {
+            if (c != '"')
+                str.push_back(c);
+            else {
                 j = put_ttw(str);
                 return Lex(LEX_WORD, j);
             }
@@ -801,8 +801,10 @@ void Parser::check_op() {
     from_st(st_lex, t2);
     from_st(st_lex, op);
     from_st(st_lex, t1);
-
-    if (op == LEX_PLUS || op == LEX_MINUS || op == LEX_TIMES || op == LEX_SLASH)
+    if (t1 == LEX_STRING && (op == LEX_PLUS || op == LEX_LSS || op == LEX_GEQ ||
+        op == LEX_EQ || op == LEX_NEQ))
+        t = r = LEX_STRING;
+    if (t1 == LEX_INT && (op == LEX_PLUS || op == LEX_MINUS || op == LEX_TIMES || op == LEX_SLASH))
         r = LEX_INT;
     if (op == LEX_OR || op == LEX_AND)
         t = LEX_BOOL;
@@ -858,7 +860,7 @@ void Executer::execute(vector<Lex>& poliz) {
     stack < int > args;
     stack < string > string_args;
     int i, j, index = 0, size = poliz.size();
-    string curr_str;
+    string curr_str, curr_str2;
     while (index < size) {
         pc_el = poliz[index];
         switch (pc_el.get_type()) {
@@ -961,7 +963,14 @@ void Executer::execute(vector<Lex>& poliz) {
         case LEX_PLUS:
             from_st(args, i);
             from_st(args, j);
-            args.push(i + j);
+            if (i != 's')
+                args.push(i + j);
+            else {
+                from_st(string_args, curr_str2);
+                from_st(string_args, curr_str);
+                string_args.push(curr_str + curr_str2);
+                args.push('s');
+            }
             break;
 
         case LEX_TIMES:
