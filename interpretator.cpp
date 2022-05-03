@@ -265,9 +265,9 @@ Lex Scanner::get_lex() {
 
 ostream& operator<< (ostream& s, Lex l) {
     string t;
-    if (l.t_lex <= LEX_WRITE)
+    if (l.t_lex <= LEX_STRING)
         t = Scanner::TW[l.t_lex];
-    else if (l.t_lex >= LEX_FIN && l.t_lex <= LEX_GEQ)
+    else if (l.t_lex >= LEX_FIN && l.t_lex <= LEX_RFIG)
         t = Scanner::TD[l.t_lex - LEX_FIN];
     else if (l.t_lex == LEX_UMINUS)
         t = "^";
@@ -366,7 +366,8 @@ void Parser::P() {
     B();
     if (c_type == LEX_RFIG)
         gl();
-    else throw curr_lex;
+    else
+        throw curr_lex;
 }
 
 void Parser::D1() {
@@ -390,6 +391,7 @@ void Parser::D(string type_of_variable) {
     if (c_type != LEX_ID)
         throw curr_lex;
     else {
+        int c = c_val;
         if (type_of_variable == "int") {
             dec(LEX_INT, c_val);
         }
@@ -403,8 +405,17 @@ void Parser::D(string type_of_variable) {
             else
                 throw curr_lex;
         gl();
+        if (c_type == LEX_ASSIGN) {
+            poliz.push_back(Lex(POLIZ_ADDRESS, c));
+            st_lex.push(TID[c].get_type());
+            gl();
+            E();
+            eq_type();
+            poliz.push_back(Lex(LEX_ASSIGN));
+        }
         while (c_type == LEX_COMMA) {
             gl();
+            c = c_val;
             if (c_type != LEX_ID)
                 throw curr_lex;
             else {
@@ -421,6 +432,14 @@ void Parser::D(string type_of_variable) {
                     else
                         throw curr_lex;
                 gl();
+                if (c_type == LEX_ASSIGN) {
+                    poliz.push_back(Lex(POLIZ_ADDRESS, c));
+                    st_lex.push(TID[c].get_type());
+                    gl();
+                    E();
+                    eq_type();
+                    poliz.push_back(Lex(LEX_ASSIGN));
+                }
             }
         }
     }
@@ -455,26 +474,37 @@ void Parser::S() {
         poliz.push_back(Lex(POLIZ_FGO));
         if (c_type == LEX_LFIG) {
             gl();
-            S();
+            while (c_type != LEX_RFIG) {
+                S();
+                if (c_type == LEX_SEMICOLON)
+                    gl();
+                else throw curr_lex;
+                if (c_type == LEX_FIN) {
+                    cout << "Check the correct placment of {}" << endl;
+                    throw curr_lex;
+                }
+            }
             pl3 = poliz.size();
             poliz.push_back(Lex());
-
             poliz.push_back(Lex(POLIZ_GO));
             poliz[pl2] = Lex(POLIZ_LABEL, poliz.size());
-            if (c_type == LEX_RFIG) {
-                gl();
-            }
-            else throw curr_lex;
+            gl();
             if (c_type == LEX_ELSE) {
                 gl();
                 if (c_type == LEX_LFIG) {
                     gl();
-                    S();
-                    if (c_type == LEX_RFIG) gl();
-                    else throw curr_lex;
+                    while (c_type != LEX_RFIG) {
+                        S();
+                        if (c_type == LEX_SEMICOLON)
+                            gl();
+                        else throw curr_lex;
+                        if (c_type == LEX_FIN) {
+                            cout << "Check the correct placment of {}" << endl;
+                            throw curr_lex;
+                        }
+                    }
                 }
                 else throw curr_lex;
-
             }
             poliz[pl3] = Lex(POLIZ_LABEL, poliz.size());
         }
@@ -498,12 +528,20 @@ void Parser::S() {
         poliz.push_back(Lex(POLIZ_FGO));
         if (c_type == LEX_LFIG) {
             gl();
-            S();
+            while (c_type != LEX_RFIG) {
+                S();
+                if (c_type == LEX_SEMICOLON)
+                    gl();
+                else throw curr_lex;
+                if (c_type == LEX_FIN) {
+                    cout << "Check the correct placment of {}" << endl;
+                    throw curr_lex;
+                }
+            }
             poliz.push_back(Lex(POLIZ_LABEL, pl0));
             poliz.push_back(Lex(POLIZ_GO));
             poliz[pl1] = Lex(POLIZ_LABEL, poliz.size());
-            if (c_type == LEX_RFIG) gl();
-            else throw curr_lex;
+            gl();
         }
         else
             throw curr_lex;
@@ -514,9 +552,17 @@ void Parser::S() {
         gl();
         if (c_type == LEX_LFIG) {
             gl();
-            S();
-            if (c_type == LEX_RFIG) gl();
-            else throw curr_lex;
+            while (c_type != LEX_RFIG) {
+                S();
+                if (c_type == LEX_SEMICOLON)
+                    gl();
+                else throw curr_lex;
+                if (c_type == LEX_FIN) {
+                    cout << "Check the correct placment of {}" << endl;
+                    throw curr_lex;
+                }
+            }
+            gl();
             if (c_type == LEX_WHILE) {
                 gl();
                 if (c_type == LEX_LPAREN) {
@@ -593,8 +639,6 @@ void Parser::S() {
         else
             throw curr_lex;
     }//assign-end
-    else
-        B();
 }
 
 void Parser::E() {
