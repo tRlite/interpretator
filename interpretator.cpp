@@ -12,7 +12,7 @@ using namespace std;
 enum type_of_lex {
     LEX_NULL,
     LEX_AND, LEX_BOOL, LEX_ELSE, LEX_IF, LEX_FALSE, LEX_INT,
-    LEX_NOT, LEX_OR, LEX_PROGRAM, LEX_READ, LEX_TRUE, LEX_DO, LEX_WHILE, LEX_WRITE, LEX_STRING,
+    LEX_NOT, LEX_OR, LEX_PROGRAM, LEX_READ, LEX_TRUE, LEX_DO, LEX_FOR, LEX_WHILE, LEX_WRITE, LEX_STRING,
     LEX_FIN,
     LEX_SEMICOLON, LEX_COMMA, LEX_COLON, LEX_ASSIGN, LEX_LPAREN, LEX_RPAREN, LEX_EQ, LEX_LSS,
     LEX_GTR, LEX_PLUS, LEX_MINUS, LEX_TIMES, LEX_SLASH, LEX_LEQ, LEX_NEQ, LEX_GEQ, LEX_LFIG, LEX_RFIG, LEX_UMINUS,
@@ -141,7 +141,7 @@ public:
 
 const char*
 Scanner::TW[] = { "", "and", "bool", "else", "if", "false", "int", "not", "or", "program",
-                      "read", "true", "do", "while", "write","string", NULL };
+                      "read", "true", "do", "for", "while", "write","string", NULL };
 
 const char*
 Scanner::TD[] = { "@", ";", ",", ":","=", "(", ")","==", "<", ">", "+", "-", "*", "/", "<=", "!=", ">=","{","}", NULL };
@@ -503,6 +503,7 @@ void Parser::S() {
                             throw curr_lex;
                         }
                     }
+                    gl();
                 }
                 else throw curr_lex;
             }
@@ -585,6 +586,52 @@ void Parser::S() {
         }
         else throw curr_lex;
     }//end do-while 
+    else if (c_type == LEX_FOR) {
+        gl();
+        if (c_type == LEX_LPAREN) {
+            gl();
+            E();
+            if (c_type == LEX_SEMICOLON) gl();
+            else throw curr_lex;
+            pl0 = poliz.size();
+            E();
+            eq_bool();
+            pl1 = poliz.size();
+            poliz.push_back(Lex());
+            poliz.push_back(Lex(POLIZ_FGO));
+            pl2 = poliz.size();
+            poliz.push_back(Lex());
+            poliz.push_back(Lex(POLIZ_GO));
+            if (c_type == LEX_SEMICOLON) gl();
+            else throw curr_lex;
+            pl3 = poliz.size();
+            E();
+            poliz.push_back(Lex(POLIZ_LABEL, pl0));
+            poliz.push_back(Lex(POLIZ_GO));
+            if (c_type == LEX_RPAREN) gl();
+            else throw curr_lex;
+            if (c_type == LEX_LFIG) {
+                gl();
+                while (c_type != LEX_RFIG) {
+                    poliz[pl2] = Lex(POLIZ_LABEL, poliz.size());
+                    S();
+                    if (c_type == LEX_SEMICOLON)
+                        gl();
+                    else throw curr_lex;
+                    if (c_type == LEX_FIN) {
+                        cout << "Check the correct placment of {}" << endl;
+                        throw curr_lex;
+                    }
+                }
+                gl();
+            }
+            else throw curr_lex;
+            poliz.push_back(Lex(POLIZ_LABEL, pl3));
+            poliz.push_back(Lex(POLIZ_GO));
+            poliz[pl1] = Lex(POLIZ_LABEL, poliz.size());
+        }
+        else throw curr_lex;
+    }//end for 
     else if (c_type == LEX_READ) {
         gl();
         if (c_type == LEX_LPAREN) {
@@ -609,16 +656,13 @@ void Parser::S() {
     else if (c_type == LEX_WRITE) {
         gl();
         if (c_type == LEX_LPAREN) {
-            gl();
-            if (c_type == LEX_WORD) {
-                poliz.push_back(curr_lex);
+            do {
                 gl();
-            }
-            else
                 E();
+                poliz.push_back(Lex(LEX_WRITE));
+            } while (c_type == LEX_COMMA);
             if (c_type == LEX_RPAREN) {
                 gl();
-                poliz.push_back(Lex(LEX_WRITE));
             }
             else
                 throw curr_lex;
@@ -983,7 +1027,10 @@ void Executer::execute(vector<Lex>& poliz) {
             from_st(args, j);
             if (TID[j].get_type() != LEX_STRING)
                 TID[j].put_value(i);
-            else TID[j].put_value(-i - 1);
+            else {
+                from_st(string_args, curr_str);
+                TID[j].put_value(put_ttw(curr_str));
+            }
             TID[j].put_assign();
             args.push(i);
             break;

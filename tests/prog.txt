@@ -7,14 +7,27 @@ program{
     write(b);
     a=b=true;
     b=false;
-    write(c);
+    write(k);
     c = -4;
     a=a or (b and a);
     if (a) {d=7;};
     while (a) { if (a) {write(a);write(d);a=false;}; };
-    do {if (a=true) {if(not(b)){write(c=-(c=5));a=true; write(a);};};} while(c>0);
+    do {
+        if (a=true) 
+        {
+            if(not(b)){
+                write(c=-(c=5));
+                a=true;
+                write(a);
+                    }
+        else {
+            write(false);
+            };
+        };
+        }
+        while(c>0);
     if (b) {};
-    write("Error not detected");// error not detected
+    write("Error not detected", 2);// error not detected
     c=0;
-    
+    for (d=0; d<3; d=d+1) {write(d);};
 }@
