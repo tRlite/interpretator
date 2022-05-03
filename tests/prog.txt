@@ -1,16 +1,20 @@
 program{
-   bool a,b;
-    int c,d;
+    bool a,b=false;
+    int c=4,d;
     string k,f;
     k="egilhriog";
     f="kldkv";
+    write(b);
     a=b=true;
     b=false;
-    c=4;
-    a=a or b and a;
-    do {if (a=true) {if(not(b)){write(c=c-1)}}} while(c>0);
-    if (b) {a=true};
-    write("jiosavn")// error not detected
-    c=0
+    write(c);
+    c = -4;
+    a=a or (b and a);
+    if (a) {d=7;};
+    while (a) { if (a) {write(a);write(d);a=false;}; };
+    do {if (a=true) {if(not(b)){write(c=-(c=5));a=true; write(a);};};} while(c>0);
+    if (b) {};
+    write("Error not detected");// error not detected
+    c=0;
     
 }@
