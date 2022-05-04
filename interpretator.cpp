@@ -313,6 +313,8 @@ class Parser {
     void  S();
     void  E();
     void  E1();
+    void  E2();
+    void  E3();
     void  T();
     void  F();
     void  dec(type_of_lex type, int i);
@@ -700,21 +702,38 @@ void Parser::S() {
             throw curr_lex;
     }//assign-end
 }
-
 void Parser::E() {
     E1();
-    if (c_type == LEX_EQ || c_type == LEX_LSS || c_type == LEX_GTR ||
-        c_type == LEX_LEQ || c_type == LEX_GEQ || c_type == LEX_NEQ) {
+    if (c_type == LEX_OR) {
         st_lex.push(c_type);
         gl();
         E1();
         check_op();
     }
 }
-
 void Parser::E1() {
+    E2();
+    while (c_type == LEX_AND) {
+        st_lex.push(c_type);
+        gl();
+        E2();
+        check_op();
+    }
+}
+void Parser::E2() {
+    E3();
+    while (c_type == LEX_EQ || c_type == LEX_LSS || c_type == LEX_GTR ||
+        c_type == LEX_LEQ || c_type == LEX_GEQ || c_type == LEX_NEQ) {
+        st_lex.push(c_type);
+        gl();
+        E3();
+        check_op();
+    }
+}
+
+void Parser::E3() {
     T();
-    while (c_type == LEX_PLUS || c_type == LEX_MINUS || c_type == LEX_OR) {
+    while (c_type == LEX_PLUS || c_type == LEX_MINUS) {
         st_lex.push(c_type);
         gl();
         T();
@@ -724,7 +743,7 @@ void Parser::E1() {
 
 void Parser::T() {
     F();
-    while (c_type == LEX_TIMES || c_type == LEX_SLASH || c_type == LEX_AND) {
+    while (c_type == LEX_TIMES || c_type == LEX_SLASH) {
         st_lex.push(c_type);
         gl();
         F();
@@ -1105,6 +1124,7 @@ void Executer::execute(vector<Lex>& poliz) {
             else {
                 from_st(string_args, curr_str);
                 TID[j].put_value(put_ttw(curr_str));
+                string_args.push(curr_str);
             }
             TID[j].put_assign();
             args.push(i);
@@ -1133,7 +1153,7 @@ void Interpretator::interpretation() {
 
 int main() {
     try {
-        Interpretator I("max.txt");
+        Interpretator I("prog2.txt");
         I.interpretation();
         return 0;
     }
