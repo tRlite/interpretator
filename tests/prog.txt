@@ -4,6 +4,7 @@ program{
     string k,f;
     k="egilhriog";
     f="kldkv";
+    k=f;
     write(b);
     a=b=true;
     b=false;
@@ -30,4 +31,7 @@ program{
     write("Error not detected", 2);// error not detected
     c=0;
     for (d=0; d<3; d=d+1) {write("fh"+f);};
+    write (f+k);
+    if (k==f) {write(15);};
+    write (k*4);
 }@

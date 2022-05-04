@@ -6,6 +6,7 @@
 #include <vector>
 #include <stack>
 #include <algorithm>
+#include <cstring>
 
 using namespace std;
 
@@ -635,17 +636,20 @@ void Parser::S() {
     else if (c_type == LEX_READ) {
         gl();
         if (c_type == LEX_LPAREN) {
-            gl();
-            if (c_type == LEX_ID) {
-                check_id_in_read();
-                poliz.push_back(Lex(POLIZ_ADDRESS, c_val));
+
+            do {
                 gl();
-            }
-            else
-                throw curr_lex;
+                if (c_type == LEX_ID) {
+                    check_id_in_read();
+                    poliz.push_back(Lex(POLIZ_ADDRESS, c_val));
+                    gl();
+                    poliz.push_back(Lex(LEX_READ));
+                }
+                else
+                    throw curr_lex;
+            } while (c_type == LEX_COMMA);
             if (c_type == LEX_RPAREN) {
                 gl();
-                poliz.push_back(Lex(LEX_READ));
             }
             else
                 throw curr_lex;
@@ -801,9 +805,11 @@ void Parser::check_op() {
     from_st(st_lex, t2);
     from_st(st_lex, op);
     from_st(st_lex, t1);
-    if (t1 == LEX_STRING && (op == LEX_PLUS || op == LEX_LSS || op == LEX_GEQ ||
-        op == LEX_EQ || op == LEX_NEQ))
-        t = r = LEX_STRING;
+    if (t1 == LEX_STRING) {
+        t = LEX_STRING;
+        if (op == LEX_PLUS)
+            r = LEX_STRING;
+    }
     if (t1 == LEX_INT && (op == LEX_PLUS || op == LEX_MINUS || op == LEX_TIMES || op == LEX_SLASH))
         r = LEX_INT;
     if (op == LEX_OR || op == LEX_AND)
@@ -811,7 +817,9 @@ void Parser::check_op() {
     if (t1 == t2 && t1 == t)
         st_lex.push(r);
     else
-        throw "wrong types are in operation";
+        if (op == LEX_TIMES && ((t1 == LEX_STRING && t2 == LEX_INT) xor (t2 == LEX_STRING && t1 == LEX_INT)))
+            st_lex.push(LEX_STRING);
+        else throw "wrong types are in operation";
     poliz.push_back(Lex(op));
 }
 
@@ -976,7 +984,23 @@ void Executer::execute(vector<Lex>& poliz) {
         case LEX_TIMES:
             from_st(args, i);
             from_st(args, j);
-            args.push(i * j);
+            if (i != 's' && j != 's')
+                args.push(i * j);
+            else {
+                from_st(string_args, curr_str);
+                if (i != 's') {
+                    curr_str2 = curr_str;
+                    for (int r = 1; r < i; r++) curr_str2.append(curr_str);
+                    string_args.push(curr_str2);
+                    args.push('s');
+                }
+                else {
+                    curr_str2 = curr_str;
+                    for (int r = 1; r < j; r++) curr_str2.append(curr_str);
+                    string_args.push(curr_str2);
+                    args.push('s');
+                }
+            }
             break;
 
         case LEX_MINUS:
@@ -998,36 +1022,66 @@ void Executer::execute(vector<Lex>& poliz) {
         case LEX_EQ:
             from_st(args, i);
             from_st(args, j);
-            args.push(i == j);
+            if (i == 's') {
+                from_st(string_args, curr_str2);
+                from_st(string_args, curr_str);
+                args.push(curr_str == curr_str2);
+            }
+            else args.push(i == j);
             break;
 
         case LEX_LSS:
             from_st(args, i);
             from_st(args, j);
-            args.push(j < i);
+            if (i == 's') {
+                from_st(string_args, curr_str2);
+                from_st(string_args, curr_str);
+                args.push(curr_str < curr_str2);
+            }
+            else args.push(j < i);
             break;
 
         case LEX_GTR:
             from_st(args, i);
             from_st(args, j);
-            args.push(j > i);
+            if (i == 's') {
+                from_st(string_args, curr_str2);
+                from_st(string_args, curr_str);
+                args.push(curr_str > curr_str2);
+            }
+            else args.push(j > i);
             break;
 
         case LEX_LEQ:
             from_st(args, i);
             from_st(args, j);
-            args.push(j <= i);
+            if (i == 's') {
+                from_st(string_args, curr_str2);
+                from_st(string_args, curr_str);
+                args.push(curr_str <= curr_str2);
+            }
+            else args.push(j <= i);
             break;
 
         case LEX_GEQ:
             from_st(args, i);
             from_st(args, j);
-            args.push(j >= i);
+            if (i == 's') {
+                from_st(string_args, curr_str2);
+                from_st(string_args, curr_str);
+                args.push(curr_str >= curr_str2);
+            }
+            else args.push(j >= i);
             break;
 
         case LEX_NEQ:
             from_st(args, i);
             from_st(args, j);
+            if (i == 's') {
+                from_st(string_args, curr_str2);
+                from_st(string_args, curr_str);
+                args.push(curr_str != curr_str2);
+            }
             args.push(j != i);
             break;
 
@@ -1067,7 +1121,7 @@ void Interpretator::interpretation() {
 
 int main() {
     try {
-        Interpretator I("prog.txt");
+        Interpretator I("string.txt");
         I.interpretation();
         return 0;
     }
