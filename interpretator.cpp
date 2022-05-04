@@ -477,6 +477,8 @@ void Parser::S() {
             gl();
             while (c_type != LEX_RFIG) {
                 S();
+                if (c_type == LEX_RFIG)
+                    break;
                 if (c_type == LEX_SEMICOLON)
                     gl();
                 else throw curr_lex;
@@ -496,6 +498,8 @@ void Parser::S() {
                     gl();
                     while (c_type != LEX_RFIG) {
                         S();
+                        if (c_type == LEX_RFIG)
+                            break;
                         if (c_type == LEX_SEMICOLON)
                             gl();
                         else throw curr_lex;
@@ -512,6 +516,7 @@ void Parser::S() {
         }
         else
             throw curr_lex;
+        if (c_type != LEX_RFIG) S();
     }//end if
     else if (c_type == LEX_WHILE) {
         pl0 = poliz.size();
@@ -532,6 +537,8 @@ void Parser::S() {
             gl();
             while (c_type != LEX_RFIG) {
                 S();
+                if (c_type == LEX_RFIG)
+                    break;
                 if (c_type == LEX_SEMICOLON)
                     gl();
                 else throw curr_lex;
@@ -547,7 +554,7 @@ void Parser::S() {
         }
         else
             throw curr_lex;
-
+        if (c_type != LEX_RFIG) S();
     }//end while
     else if (c_type == LEX_DO) {
         pl0 = poliz.size();
@@ -556,6 +563,8 @@ void Parser::S() {
             gl();
             while (c_type != LEX_RFIG) {
                 S();
+                if (c_type == LEX_RFIG)
+                    break;
                 if (c_type == LEX_SEMICOLON)
                     gl();
                 else throw curr_lex;
@@ -613,9 +622,11 @@ void Parser::S() {
             else throw curr_lex;
             if (c_type == LEX_LFIG) {
                 gl();
+                poliz[pl2] = Lex(POLIZ_LABEL, poliz.size());
                 while (c_type != LEX_RFIG) {
-                    poliz[pl2] = Lex(POLIZ_LABEL, poliz.size());
                     S();
+                    if (c_type == LEX_RFIG)
+                        break;
                     if (c_type == LEX_SEMICOLON)
                         gl();
                     else throw curr_lex;
@@ -632,6 +643,7 @@ void Parser::S() {
             poliz[pl1] = Lex(POLIZ_LABEL, poliz.size());
         }
         else throw curr_lex;
+        if (c_type != LEX_RFIG) S();
     }//end for 
     else if (c_type == LEX_READ) {
         gl();
@@ -1121,7 +1133,7 @@ void Interpretator::interpretation() {
 
 int main() {
     try {
-        Interpretator I("string.txt");
+        Interpretator I("max.txt");
         I.interpretation();
         return 0;
     }
