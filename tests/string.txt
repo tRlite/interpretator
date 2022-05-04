@@ -8,7 +8,7 @@ program{
     }
     else {
         write (s3==s4);
-    };
+    }
     write ("ab" * 3);
     
 }@

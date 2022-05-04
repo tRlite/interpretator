@@ -1,0 +1,12 @@
+program {
+    int n, i = 1, curr, max;
+    read(n);
+    read(max);
+    for (i = 1; i < n; i = i + 1){
+        read(curr);
+        if (curr > max) {
+            max=curr;  
+        }
+    }
+    write ("The max number is:", max);
+}@
