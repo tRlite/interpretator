@@ -6,7 +6,6 @@
 #include <vector>
 #include <stack>
 #include <algorithm>
-#include <cstring>
 
 using namespace std;
 
@@ -16,7 +15,7 @@ enum type_of_lex {
     LEX_NOT, LEX_OR, LEX_PROGRAM, LEX_READ, LEX_TRUE, LEX_DO, LEX_FOR, LEX_WHILE, LEX_WRITE, LEX_STRING,
     LEX_FIN,
     LEX_SEMICOLON, LEX_COMMA, LEX_COLON, LEX_ASSIGN, LEX_LPAREN, LEX_RPAREN, LEX_EQ, LEX_LSS,
-    LEX_GTR, LEX_PLUS, LEX_MINUS, LEX_TIMES, LEX_SLASH, LEX_LEQ, LEX_NEQ, LEX_GEQ, LEX_LFIG, LEX_RFIG, LEX_UMINUS,
+    LEX_GTR, LEX_PLUS, LEX_MINUS, LEX_TIMES, LEX_SLASH, LEX_PERCENT, LEX_LEQ, LEX_NEQ, LEX_GEQ, LEX_LFIG, LEX_RFIG, LEX_UMINUS,
     LEX_NUM,
     LEX_ID,
     LEX_WORD,
@@ -145,7 +144,7 @@ Scanner::TW[] = { "", "and", "bool", "else", "if", "false", "int", "not", "or", 
                       "read", "true", "do", "for", "while", "write","string", NULL };
 
 const char*
-Scanner::TD[] = { "@", ";", ",", ":","=", "(", ")","==", "<", ">", "+", "-", "*", "/", "<=", "!=", ">=","{","}", NULL };
+Scanner::TD[] = { "@", ";", ",", ":","=", "(", ")","==", "<", ">", "+", "-", "*", "/", "%", "<=", "!=", ">=","{","}", NULL };
 
 Lex Scanner::get_lex() {
     enum    state { H, IDENT, NUMB, STR, COM, COM2, ALE, NEQ };
@@ -228,7 +227,7 @@ Lex Scanner::get_lex() {
             }
             else {
                 ungetc(c, fp);
-                j = look(buf, TD);
+                j = look("/", TD);
                 return Lex((type_of_lex)(j + (int)LEX_FIN), j);
             };
             break;
@@ -743,7 +742,7 @@ void Parser::E3() {
 
 void Parser::T() {
     F();
-    while (c_type == LEX_TIMES || c_type == LEX_SLASH) {
+    while (c_type == LEX_TIMES || c_type == LEX_SLASH || c_type == LEX_PERCENT) {
         st_lex.push(c_type);
         gl();
         F();
@@ -770,7 +769,6 @@ void Parser::F() {
             st_lex.push(TID[c].get_type());
         }
         else poliz.push_back(Lex(LEX_ID, c));
-
     }
     else if (c_type == LEX_NUM) {
         st_lex.push(LEX_INT);
@@ -836,21 +834,32 @@ void Parser::check_op() {
     from_st(st_lex, t2);
     from_st(st_lex, op);
     from_st(st_lex, t1);
-    if (t1 == LEX_STRING) {
-        t = LEX_STRING;
-        if (op == LEX_PLUS)
-            r = LEX_STRING;
-    }
-    if (t1 == LEX_INT && (op == LEX_PLUS || op == LEX_MINUS || op == LEX_TIMES || op == LEX_SLASH))
-        r = LEX_INT;
-    if (op == LEX_OR || op == LEX_AND)
-        t = LEX_BOOL;
-    if (t1 == t2 && t1 == t)
-        st_lex.push(r);
-    else
-        if (op == LEX_TIMES && ((t1 == LEX_STRING && t2 == LEX_INT) xor (t2 == LEX_STRING && t1 == LEX_INT)))
-            st_lex.push(LEX_STRING);
+    if (t1 == LEX_STRING || t2 == LEX_STRING) {
+        if (op == LEX_PLUS) {
+            if (t1 == t2)
+                st_lex.push(LEX_STRING);
+            else throw "wrong types are in operation";
+        }
+        else if (op == LEX_TIMES) {
+            if ((t1 == LEX_STRING && t2 == LEX_INT) or (t1 == LEX_INT && t2 == LEX_STRING))
+                st_lex.push(LEX_STRING);
+            else throw "wrong types are in operation";
+        }
+        else if (op == LEX_GTR || op == LEX_GEQ || op == LEX_LSS || op == LEX_LEQ || op == LEX_EQ || op == LEX_NEQ)
+            if (t1 == t2)
+                st_lex.push(LEX_BOOL);
+            else throw "wrong types are in operation";
         else throw "wrong types are in operation";
+    }
+    else {
+        if (op == LEX_PLUS || op == LEX_MINUS || op == LEX_TIMES || op == LEX_SLASH || op == LEX_PERCENT)
+            r = LEX_INT;
+        if (op == LEX_OR || op == LEX_AND)
+            t = LEX_BOOL;
+        if (t1 == t2 && t1 == t)
+            st_lex.push(r);
+        else throw "wrong types are in operation";
+    }
     poliz.push_back(Lex(op));
 }
 
@@ -1043,8 +1052,18 @@ void Executer::execute(vector<Lex>& poliz) {
         case LEX_SLASH:
             from_st(args, i);
             from_st(args, j);
-            if (!i) {
+            if (i) {
                 args.push(j / i);
+                break;
+            }
+            else
+                throw "POLIZ:divide by zero";
+
+        case LEX_PERCENT:
+            from_st(args, i);
+            from_st(args, j);
+            if (i) {
+                args.push(j % i);
                 break;
             }
             else
@@ -1153,7 +1172,7 @@ void Interpretator::interpretation() {
 
 int main() {
     try {
-        Interpretator I("prog2.txt");
+        Interpretator I("GCD.txt");
         I.interpretation();
         return 0;
     }

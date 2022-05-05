@@ -33,5 +33,5 @@ program{
     for (d=0; d<3; d=d+1) {write("fh"+f);}
     write (f+k);
     if (k==f) {write(15);}
-    write (k*4);
+    write (f=k*4);
 }@
